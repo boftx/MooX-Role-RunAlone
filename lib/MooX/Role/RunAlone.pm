@@ -9,7 +9,7 @@ use Fcntl ':flock';
 #use Moo::Role;
 use Role::Tiny;
 
-our $VERSION = 'v0.0.0_01';
+our $VERSION = 'v0.0.0_02';
 
 my $verbose = !!$ENV{VERBOSE_RUNALONE};
 my $retry   = $ENV{RETRY_RUNALONE};
@@ -86,19 +86,33 @@ Version v0.0.0_01
 =head1 SYNOPSIS
   
  # in your script
- use MooX::Role::RunAlone;
+ use Moo;
+ with 'MooX::Role::RunAlone';
   
  ...
   
- __DATA__
+ __END__ # or __DATA__
   
 =head1 DESCRIPTION
+
+This module provides a simple way for a command line script that uses C<Moo>
+to ensure that only a single instance of said script is able to run at
+one time.
 
 =head1 SUBROUTINES/METHODS
 
 =head2 runalone_lock
 
+=head1 ACKNOWLEDGMENTS
+
+This module relies heavily upon a principle that was first proposed
+(so far as this author knows) by Randal L. Schwartz (L<MERLYN>), and first
+implemented by Elizibeth Mattijsen (L<ELIZABETH>) in L<Sys::RonAlone>. That
+module has been extended by L<PERLANCAR> with suggestions by this author.
+
 =head1 SEE ALSO
+
+L<Sys::RunAlone>, L<Sys::RunAlone::Flexible>, L<Sys::RunAlone::Flexible2>
 
 =head1 AUTHOR
 
