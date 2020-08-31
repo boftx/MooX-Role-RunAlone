@@ -1,16 +1,16 @@
 MooX-Role-RunAlone
 
-The README is used to introduce the module and provide instructions on
-how to install the module, any machine dependencies it may have (for
-example C compilers and installed libraries) and any other information
-that should be provided before the module is installed.
+This Role provides a simple way for a command line script that uses C<Moo>
+to ensure that only a single instance of said script is able to run at
+one time. This is accomplished by trying to obtain an exlusive lock on the
+sctript's C<__DATA__> or C<__END__> section.
 
-A README file is required for CPAN modules since CPAN extracts the README
-file from a module distribution so that people browsing the archive
-can use it to get an idea of the module's uses. It is usually a good idea
-to provide version information here so that people can decide whether
-fixes for the module are worth downloading.
+The Role will call C<exit(2)> if neither of those tags are present.
+This behavior can not be disabled and occurs when the Role is composed.
 
+If one of the aforementioned tags are present, a failure to obtain an
+exclusive lock indicates that another instance of the composing script
+is already executing and the Role will call C<exit(1)>.
 
 INSTALLATION
 
