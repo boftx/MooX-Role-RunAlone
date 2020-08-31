@@ -1,6 +1,12 @@
 Revision history for MooX-Role-RunAlone
 
 Version     Timestamp
+v0.0.0_02   2020-08-30 20:22:00 PDT
+            Update POD for public release. Changed "silent" to "verbose" to
+            match design decisions.
+            Updated README for public release.
+            Refactored code for better testing of features.
+
 v0.0.0_01   2020-08-30 02:22:00 PDT
             First version, released on an unsuspecting world.
 
