@@ -4,12 +4,20 @@ use 5.006;
 use strict;
 use warnings;
 
-use Fcntl ':flock';
+use Fcntl qw( :flock );
+use Carp qw( croak );
 
 #use Moo::Role;
 use Role::Tiny;
 
 our $VERSION = 'v0.0.0_02';
+
+my %default_lock_args = (
+    noexit   => 0,
+    attempts => 1,
+    interval => 1,
+    verbose  => 0,
+);
 
 my $data_pkg = 'main::DATA';
 
@@ -30,7 +38,7 @@ my $pkg       = $call_info[0];
 
         if ( ( tell( *{$data_pkg} ) == -1 ) ) {
             warn "FATAL: No __DATA__ or __END__ tag found\n";
-            exit 2;
+            __PACKAGE__->_runalone_exit(2);
         }
     }
 }
@@ -38,32 +46,57 @@ my $pkg       = $call_info[0];
 # maybe the script wants to control this
 __PACKAGE__->runalone_lock unless !!$ENV{RUNALONE_DEFER_LOCK};
 
+# is the argument validation over-engineered? maybe, but I'm paranoid.
 sub runalone_lock {
     my $proto = shift;
     my %args  = @_;
 
-    my $verbose  = !!delete( $args{verbose} );
-    my $noexit   = !!delete( $args{noexit} );
-    my $attempts = delete( $args{attempts} ) // 1;
-    my $interval = delete( $args{interval} ) // 1;
+    # set defaults as needed
+    for ( keys(%default_lock_args) ) {
+        $args{$_} //= $default_lock_args{$_};
+    }
+
+    croak 'ERROR: unknown argument present'
+      if scalar( keys(%args) ) != scalar( keys(%default_lock_args) );
+
+    # validate integer args
+    for (qw( attempts interval )) {
+        croak "$_: invalid value" unless $args{$_} =~ /^[1-9]$/;
+    }
+
+    # coerce Boolean args
+    for (qw( noexit verbose )) {
+        $args{$_} = !!$args{$_};
+    }
 
     my $ret = 1;
-    while ( $attempts-- > 0 ) {
-        warn "attemting to lock $data_pkg ... " if $verbose;
-        last if $proto->_runalone_lock($noexit);
-        warn "failed. Retrying $attempts more time(s)\n" if $verbose;
-        if ( $attempts ) {
-            sleep $interval if $attempts;
+    while ( $args{attempts}-- > 0 ) {
+        warn "attemting to lock $data_pkg ... " if $args{verbose};
+        last if $proto->_runalone_lock( $args{noexit} );
+        warn "failed. Retrying $args{attempts} more time(s)\n"
+          if $args{verbose};
+        if ( $args{attempts} ) {
+            sleep $args{interval} if $args{attempts};
+        }
+        elsif ( $args{noexit} ) {
+            $ret = 0;
         }
         else {
-            $ret = 0;
             warn "FATAL: A copy of '$0' is already running\n";
-            exit( 1 ) unless $noexit;
+            __PACKAGE__->_runalone_exit(1);
         }
     }
-    warn "SUCCESS\n" if $verbose && $ret;
+    warn "SUCCESS\n" if $args{verbose} && $ret;
 
     return $ret;
+}
+
+# no need to mock Perl internal exit for tests
+sub _runalone_exit {
+    my $proto  = shift;
+    my $status = shift // 0;
+
+    exit($status);
 }
 
 # broken out for easier retry testing
@@ -75,6 +108,7 @@ sub _runalone_lock {
     return flock( *{$data_pkg}, LOCK_EX | LOCK_NB );
 }
 
+# helper for test scripts
 sub _runalone_tag_pkg {
     $data_pkg =~ /^(.+)::DATA$/;
 
@@ -144,7 +178,7 @@ The Role will send a message to C<STDERR> indicating a fatal error and then
 call C<exit(2)> if neither of those tags are present. This behavior can not
 be disabled and occurs when the Role is composed.
 
-=head2 NORMAL LOCKING
+=head2 Normal Locking
 
 If one of the aforementioned tags are present, an attempt is made (via
 C<runalone_lock()>) to obtain an exclusive lock on the tag's file handle
@@ -155,7 +189,7 @@ a fatal condition and the Role will call C<exit(1)>.
 
 The Role does a void return if the call to C<flock> is successful.
 
-=head2 DEFERRED LOCKING
+=head2 Deferred Locking
 
 The composing script can tell the Role that it should not immediately
 call C<runalone_lock()> but should defer this action to the script. This is
@@ -171,11 +205,67 @@ one of the tags are present instead of trying to get the lock.
 Note: It is the responsibility of the composing script to call
 C<runalone_lock()> at an appropriate time.
 
+=head2 Fatal Messages
+
+There are two messages that are sent to C<STDERR> that cannot usually be
+suppressed during normal startup:
+
+=over 4
+
+=item "FATAL: No __DATA__ or __END__ tag found"
+
+
+=item "FATAL: A copy of '$0' is already running"
+
+Note: this can be suppressed in deferred locking mode. See the C<noexit>
+argument to C<runalone_lock>.
+
+=back
+
 =head1 METHODS
+
+Only one method is currently exposed, but it is the workhorse when deferred
+mode is used.
 
 =head2 runalone_lock
 
+This method attempts to get an exclusive lock on the C<__END__> or C<__DATA__>
+handle that was located during the Role's startup. A composing script may
+immulate normal operation by simply calling this method with no arguments
+at the desired time. It will either return a Boolean C<true> if successful,
+or call C<exit> with a status code of C<1> upon failure.
+
+The method's behavior can be modified by four arguments. This allows the
+composing script to enable lock retries or perform custom operations as
+needed. (Note: the method is implemented as a C<class method> and may be
+called with either a class name or a composing object.
+
+Examples:
+  
+ # basic call with retries and progress messages enabled
+ my $locked = __PACKAGE__->runalone_lock(
+    attemtps => 3,
+    interval => 2,
+    verbose  => 1,
+ );
+  
+ # basic call with retries enabled, but silent
+ my $locked = __PACKAGE__->runalone_lock(
+    attemtps => 3,
+    interval => 2,
+ );
+  
+ # make a single (silent) attempt, but return to the caller instead of
+ # exiting if the attempt fails. also suppresses any failure message.
+ my $locked = __PACKAGE__->runalone_lock(
+    noexit => 1,
+ );
+  
+
 =head3 Arguments
+
+Invalid values will cause an exception to be thrown via C<croak> so the
+offending caller might be more easily identified.
 
 =over 4
 
@@ -185,11 +275,14 @@ Controls whetern the method will call C<exit( 1 )> or return a Boolean
 C<false> upon failure. Settin it C<true> allows the composing script
 to take additional/different actions.
 
-=item attempts (Integer, default: 1)
+Note: if set, it will also suppress the fatal error message associated
+with failure to obtain a lock.
+
+=item attempts (Integer, must satisfy 0 < N < 10; default: 1)
 
 Set how many attempts will be made to get a lock on the handle in question.
 
-=item interval (Integer, default: 1)
+=item interval (Integer, must satisfy 0 < N < 10, default: 1)
 
 Sets how long to C<sleep> between attempts if C<attempts> is greater than one.
 
@@ -210,11 +303,32 @@ C<1> if the lock was obtained.
 The method will either call C<exit(1)> or return a Boolean C<false> depending
 upon the value of the C<noexit> argument.
 
-=head1 UNDOCUMENTED METHODS
+=head1 PRIVATE METHODS
 
-There are a number of methods used internally that are not documented here.
-All such methods begin with the string C<_runalone_> in an attempt to
-avoid namespace collision.
+There are a few internal methods that are not documented here. All such
+methods begin with the string C<_runalone_> in an attempt to avoid
+namespace collision.
+
+=head1 CAVEATS
+
+[NB: This section has been copied from C<Sys::RunAlone>]
+
+=head2 Symlinks
+
+Execution of scripts that are (sym)linked to another script, will all be seen
+as execution of the same script, even though the error message will only show
+the specified script name.  This could be considered a bug or a feature.
+
+=head2 Changing a Running Script
+
+If you change the script while it is running, the script will effectively
+lose its lock on the file. causing any subsequent run of the same script
+to be successful, therefor causing two instances of the same script to run
+at the same time (which is what you wanted to prevent by using Sys::RunAlone
+in the first place). Therefore, make sure that no instances of the script are
+running (and won't be started by cronjobs while making changes) if you really
+want to be 100% sure that only one instance of the script is running at the
+same time.
 
 =head1 ACKNOWLEDGMENTS
 
@@ -226,7 +340,7 @@ by this author.
 
 =head1 SEE ALSO
 
-L<Sys::RunAlone>, L<Sys::RunAlone::Flexible>, L<Sys::RunAlone::Flexible2>
+L<Sys::RunAlone>, L<Sys::RunAlone::Flexible>
 
 =head1 AUTHOR
 

@@ -14,18 +14,23 @@ my %WriteMakefileArgs = (
         'ExtUtils::MakeMaker' => '0',
     },
     TEST_REQUIRES => {
-        'Test::More'  => '0',
-        'FindBin'     => '0',
-        'Moo'         => '0',
-        'Role::Tiny'  => '0',
-        'Time::HiRes' => '0',
-        'IPC::Run'    => '0',
-        'File::Temp'  => '0',
+        'Test::More'       => '0',
+        'Test::MockModule' => '0',
+        'Test::MockSleep'  => '0',
+        'FindBin'          => '0',
+        'Time::HiRes'      => '0',
+        'IPC::Run'         => '0',
+        'File::Temp'       => '0',
+        'Moo'              => '0',
+        'Role::Tiny'       => '0',
+        'Fcntl'            => '0',
+        'Carp'             => '0',
     },
     PREREQ_PM => {
         'Moo'        => '0',
         'Role::Tiny' => '0',
         'Fcntl'      => '0',
+        'Carp'       => '0',
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES    => 'MooX-Role-RunAlone-*' },
@@ -54,12 +59,14 @@ delete $WriteMakefileArgs{LICENSE}
 WriteMakefile(%WriteMakefileArgs);
 
 package MY;
+
 sub depend {
-  "
-mytests :: test xtest
+    "
+mytests :: test
+	\$(MAKE) test TEST_FILES=xt/*.t RELEASE_TESTING=1
 
 xtest :
-	\$(MAKE) test TEST_FILES=xt/*.t RELEASE_TESTING=1
+	\$(MAKE) test TEST_FILES=xt/*.t TEST_VERBOSE=1
 "
 }
 
