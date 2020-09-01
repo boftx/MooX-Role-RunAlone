@@ -145,7 +145,7 @@ Version v0.0.0_01
   
 
  # deferred mode
- package My::DeferedScript;
+ package My::DeferredScript;
   
  BEGIN {
     $ENV{RUNALONE_DEFER_LOCK} = 1;
@@ -172,7 +172,7 @@ Version v0.0.0_01
 This Role provides a simple way for a command line script that uses C<Moo>
 to ensure that only a single instance of said script is able to run at
 one time. This is accomplished by trying to obtain an exlusive lock on the
-sctript's C<__DATA__> or C<__END__> section.
+script's C<__DATA__> or C<__END__> section.
 
 The Role will send a message to C<STDERR> indicating a fatal error and then
 call C<exit(2)> if neither of those tags are present. This behavior can not
@@ -244,19 +244,19 @@ Examples:
   
  # basic call with retries and progress messages enabled
  my $locked = __PACKAGE__->runalone_lock(
-    attemtps => 3,
+    attempts => 3,
     interval => 2,
     verbose  => 1,
  );
   
  # basic call with retries enabled, but silent
  my $locked = __PACKAGE__->runalone_lock(
-    attemtps => 3,
+    attempts => 3,
     interval => 2,
  );
   
  # make a single (silent) attempt, but return to the caller instead of
- # exiting if the attempt fails. also suppresses any failure message.
+ # exiting if the attempt fails. Also suppresses any failure message.
  my $locked = __PACKAGE__->runalone_lock(
     noexit => 1,
  );
@@ -271,8 +271,8 @@ offending caller might be more easily identified.
 
 =item noexit (Boolean, default: 0)
 
-Controls whetern the method will call C<exit( 1 )> or return a Boolean
-C<false> upon failure. Settin it C<true> allows the composing script
+Controls whether the method will call C<exit( 1 )> or return a Boolean
+C<false> upon failure. Setting it C<true> allows the composing script
 to take additional/different actions.
 
 Note: if set, it will also suppress the fatal error message associated
@@ -292,7 +292,7 @@ Enables progress messages on STDERR if set. The following messages
 can appear:
   
  "attemting to lock <data pkg> ... failed. Retrying <N> more time(s)"
- "attemting to lock <data pkg> ... SUCCESS"
+ "attempting to lock <data pkg> ... SUCCESS"
   
 =back
 
@@ -323,7 +323,7 @@ the specified script name.  This could be considered a bug or a feature.
 
 If you change the script while it is running, the script will effectively
 lose its lock on the file. causing any subsequent run of the same script
-to be successful, therefor causing two instances of the same script to run
+to be successful, therefore causing two instances of the same script to run
 at the same time (which is what you wanted to prevent by using Sys::RunAlone
 in the first place). Therefore, make sure that no instances of the script are
 running (and won't be started by cronjobs while making changes) if you really
@@ -334,7 +334,7 @@ same time.
 
 This Role relies upon a principle that was first proposed (so far as this
 author knows) by Randal L. Schwartz (L<MERLYN>), and first implemented by
-Elizibeth Mattijsen (L<ELIZABETH>) in L<Sys::RonAlone>. That module has
+Elizabeth Mattijsen (L<ELIZABETH>) in L<Sys::RunAlone>. That module has
 been extended by L<PERLANCAR> in L<Sys::RunAlone::Flexible> with suggestions
 by this author.
 
