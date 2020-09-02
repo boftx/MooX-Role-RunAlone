@@ -10,7 +10,7 @@ use Carp qw( croak );
 #use Moo::Role;
 use Role::Tiny;
 
-our $VERSION = 'v0.0.0_02';
+our $VERSION = 'v0.0.0_03';
 
 my %default_lock_args = (
     noexit   => 0,
@@ -71,9 +71,9 @@ sub runalone_lock {
 
     my $ret = 1;
     while ( $args{attempts}-- > 0 ) {
-        warn "attemting to lock $data_pkg ... " if $args{verbose};
+        warn "Attempting to lock $data_pkg ...\n" if $args{verbose};
         last if $proto->_runalone_lock( $args{noexit} );
-        warn "failed. Retrying $args{attempts} more time(s)\n"
+        warn "Failed, retrying $args{attempts} more time(s)\n"
           if $args{verbose};
         if ( $args{attempts} ) {
             sleep $args{interval} if $args{attempts};
@@ -126,7 +126,7 @@ MooX::Role::RunAlone - prevent multiple instances of a script from running
 
 =head1 VERSION
 
-Version v0.0.0_01
+Version v0.0.0_03
 
 =head1 SYNOPSIS
   
@@ -145,7 +145,7 @@ Version v0.0.0_01
   
 
  # deferred mode
- package My::DeferedScript;
+ package My::DeferredScript;
   
  BEGIN {
     $ENV{RUNALONE_DEFER_LOCK} = 1;
@@ -171,8 +171,8 @@ Version v0.0.0_01
 
 This Role provides a simple way for a command line script that uses C<Moo>
 to ensure that only a single instance of said script is able to run at
-one time. This is accomplished by trying to obtain an exlusive lock on the
-sctript's C<__DATA__> or C<__END__> section.
+one time. This is accomplished by trying to obtain an exclusive lock on the
+script's C<__DATA__> or C<__END__> section.
 
 The Role will send a message to C<STDERR> indicating a fatal error and then
 call C<exit(2)> if neither of those tags are present. This behavior can not
@@ -187,7 +187,7 @@ obtain an exclusive lock means that another instance of the composing
 script is already executing. A message will be sent to C<STDERR> indicating
 a fatal condition and the Role will call C<exit(1)>.
 
-The Role does a void return if the call to C<flock> is successful.
+The Role does nothing if the call to C<flock> is successful.
 
 =head2 Deferred Locking
 
@@ -231,7 +231,7 @@ mode is used.
 
 This method attempts to get an exclusive lock on the C<__END__> or C<__DATA__>
 handle that was located during the Role's startup. A composing script may
-immulate normal operation by simply calling this method with no arguments
+emulate normal operation by simply calling this method with no arguments
 at the desired time. It will either return a Boolean C<true> if successful,
 or call C<exit> with a status code of C<1> upon failure.
 
@@ -244,14 +244,14 @@ Examples:
   
  # basic call with retries and progress messages enabled
  my $locked = __PACKAGE__->runalone_lock(
-    attemtps => 3,
+    attempts => 3,
     interval => 2,
     verbose  => 1,
  );
   
  # basic call with retries enabled, but silent
  my $locked = __PACKAGE__->runalone_lock(
-    attemtps => 3,
+    attempts => 3,
     interval => 2,
  );
   
@@ -271,8 +271,8 @@ offending caller might be more easily identified.
 
 =item noexit (Boolean, default: 0)
 
-Controls whetern the method will call C<exit( 1 )> or return a Boolean
-C<false> upon failure. Settin it C<true> allows the composing script
+Controls whether the method will call C<exit( 1 )> or return a Boolean
+C<false> upon failure. Setting it C<true> allows the composing script
 to take additional/different actions.
 
 Note: if set, it will also suppress the fatal error message associated
@@ -291,8 +291,8 @@ Sets how long to C<sleep> between attempts if C<attempts> is greater than one.
 Enables progress messages on STDERR if set. The following messages
 can appear:
   
- "attemting to lock <data pkg> ... failed. Retrying <N> more time(s)"
- "attemting to lock <data pkg> ... SUCCESS"
+ "Attempting to lock <data pkg> ... Failed, retrying <N> more time(s)"
+ "Attempting to lock <data pkg> ... SUCCESS"
   
 =back
 
@@ -323,7 +323,7 @@ the specified script name.  This could be considered a bug or a feature.
 
 If you change the script while it is running, the script will effectively
 lose its lock on the file. causing any subsequent run of the same script
-to be successful, therefor causing two instances of the same script to run
+to be successful, therefore causing two instances of the same script to run
 at the same time (which is what you wanted to prevent by using Sys::RunAlone
 in the first place). Therefore, make sure that no instances of the script are
 running (and won't be started by cronjobs while making changes) if you really
@@ -334,7 +334,7 @@ same time.
 
 This Role relies upon a principle that was first proposed (so far as this
 author knows) by Randal L. Schwartz (L<MERLYN>), and first implemented by
-Elizibeth Mattijsen (L<ELIZABETH>) in L<Sys::RonAlone>. That module has
+Elizabeth Mattijsen (L<ELIZABETH>) in L<Sys::RunAlone>. That module has
 been extended by L<PERLANCAR> in L<Sys::RunAlone::Flexible> with suggestions
 by this author.
 
