@@ -4,7 +4,9 @@ use strict;
 use warnings;
 use Test::More;
 
-plan tests => 3;
+unless ( $ENV{RELEASE_TESTING} ) {
+    plan( skip_all => "Author tests not required for installation" );
+}
 
 sub not_in_file_ok {
     my ( $filename, %regex ) = @_;
@@ -52,6 +54,7 @@ TODO: {
     module_boilerplate_ok('lib/MooX/Role/RunAlone.pm');
 }
 
+done_testing();
 exit;
 
 __END__

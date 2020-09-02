@@ -6,7 +6,7 @@ use 5.006;
 use strict;
 use warnings;
 
-use Test::More tests => 7;
+use Test::More tests => 8;
 use Test::MockSleep;
 use Test::MockModule;
 
@@ -40,7 +40,6 @@ subtest 'no args' => sub {
 
     $_ral_val = 0;
     $_ral_cnt = 0;
-
     my $stderr = '';
     eval {
         local $SIG{__WARN__} = sub { $stderr .= $_[0]; };
@@ -57,7 +56,7 @@ subtest noexit => sub {
     plan tests => 4;
 
     $_ral_val = 0;
-
+    $_ral_cnt = 0;
     my $stderr = '';
     eval {
         local $SIG{__WARN__} = sub { $stderr .= $_[0]; };
@@ -66,6 +65,8 @@ subtest noexit => sub {
     ok( !$@, 'noexit stops exit() being called' );
     is( $stderr, '', 'and suppressed the error message' );
 
+    $_ral_val = 0;
+    $_ral_cnt = 0;
     eval {
         $stderr = '';
         local $SIG{__WARN__} = sub { $stderr .= $_[0]; };
@@ -75,12 +76,44 @@ subtest noexit => sub {
     like( $stderr, qr/FATAL/, 'and did not suppress the error message' );
 };
 
+subtest verbose => sub {
+    plan tests => 7;
+
+    $_ral_val = 1;
+    $_ral_cnt = 0;
+    my $stderr = '';
+    eval {
+        local $SIG{__WARN__} = sub { $stderr .= $_[0]; };
+        $pkg->runalone_lock( verbose => 1, noexit => 1 );
+    };
+    like( $stderr, qr/Attempting/,
+        'good attempt with "verbose" produces "Attempting"' );
+    like( $stderr, qr/SUCCESS/,
+        'good attempt with "verbose" has "SUCCESS" in the result string' );
+    unlike( $stderr, qr/Failed/,
+        'good attempt with "verbose" does not produce the "Failed" message' );
+
+    $_ral_val = 0;
+    $_ral_cnt = 0;
+    eval {
+        $stderr = '';
+        local $SIG{__WARN__} = sub { $stderr .= $_[0]; };
+        $pkg->runalone_lock( verbose => 1 );
+    };
+    ok( $@, 'false noexit allows exit() to be called' );
+    like( $stderr, qr/Attempting/, 'and does not suppress verbose' );
+    like( $stderr, qr/Failed/,
+        'bad attempt with "verbose" has "Failed" in the message message' );
+    unlike( $stderr, qr/SUCCESS/,
+'bad attempt with "verbose" does not have "SUCCESS" in the result string'
+    );
+};
+
 subtest attempts => sub {
     plan tests => 9;
 
     $_ral_val = 0;
     $_ral_cnt = 0;
-
     eval {
         local $SIG{__WARN__} = sub { };
         $pkg->runalone_lock( attempts => 3 );
@@ -188,6 +221,7 @@ subtest interval => sub {
 
 subtest 'unknown argument' => sub {
     plan tests => 1;
+
     eval { $pkg->runalone_lock( foobar => 2 ); };
     like( $@, qr/ERROR: unknown argument/, 'unknown arguments are rejected' );
 };

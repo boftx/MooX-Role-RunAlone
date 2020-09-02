@@ -10,7 +10,7 @@ use Carp qw( croak );
 #use Moo::Role;
 use Role::Tiny;
 
-our $VERSION = 'v0.0.0_02';
+our $VERSION = 'v0.0.0_03';
 
 my %default_lock_args = (
     noexit   => 0,
@@ -71,9 +71,9 @@ sub runalone_lock {
 
     my $ret = 1;
     while ( $args{attempts}-- > 0 ) {
-        warn "attemting to lock $data_pkg ... " if $args{verbose};
+        warn "Attempting to lock $data_pkg ...\n" if $args{verbose};
         last if $proto->_runalone_lock( $args{noexit} );
-        warn "failed. Retrying $args{attempts} more time(s)\n"
+        warn "Failed, retrying $args{attempts} more time(s)\n"
           if $args{verbose};
         if ( $args{attempts} ) {
             sleep $args{interval} if $args{attempts};
@@ -126,7 +126,7 @@ MooX::Role::RunAlone - prevent multiple instances of a script from running
 
 =head1 VERSION
 
-Version v0.0.0_01
+Version v0.0.0_03
 
 =head1 SYNOPSIS
   
@@ -171,7 +171,7 @@ Version v0.0.0_01
 
 This Role provides a simple way for a command line script that uses C<Moo>
 to ensure that only a single instance of said script is able to run at
-one time. This is accomplished by trying to obtain an exlusive lock on the
+one time. This is accomplished by trying to obtain an exclusive lock on the
 script's C<__DATA__> or C<__END__> section.
 
 The Role will send a message to C<STDERR> indicating a fatal error and then
@@ -187,7 +187,7 @@ obtain an exclusive lock means that another instance of the composing
 script is already executing. A message will be sent to C<STDERR> indicating
 a fatal condition and the Role will call C<exit(1)>.
 
-The Role does a void return if the call to C<flock> is successful.
+The Role does nothing if the call to C<flock> is successful.
 
 =head2 Deferred Locking
 
@@ -231,7 +231,7 @@ mode is used.
 
 This method attempts to get an exclusive lock on the C<__END__> or C<__DATA__>
 handle that was located during the Role's startup. A composing script may
-immulate normal operation by simply calling this method with no arguments
+emulate normal operation by simply calling this method with no arguments
 at the desired time. It will either return a Boolean C<true> if successful,
 or call C<exit> with a status code of C<1> upon failure.
 
@@ -291,8 +291,8 @@ Sets how long to C<sleep> between attempts if C<attempts> is greater than one.
 Enables progress messages on STDERR if set. The following messages
 can appear:
   
- "attemting to lock <data pkg> ... failed. Retrying <N> more time(s)"
- "attempting to lock <data pkg> ... SUCCESS"
+ "Attempting to lock <data pkg> ... Failed, retrying <N> more time(s)"
+ "Attempting to lock <data pkg> ... SUCCESS"
   
 =back
 

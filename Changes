@@ -1,6 +1,12 @@
 Revision history for MooX-Role-RunAlone
 
 Version     Timestamp
+v0.0.0_03   2020-09-01 17:00:00 PDT
+            Spelling corrections found by Dragan and myself.
+            Expanded tests for better coverage.
+            Added spelling test.
+            Tweaks to messages.
+
 v0.0.0_02   2020-08-31 23:45:00 PDT
             Update POD for public release. Changed "silent" to "verbose" to
             match design decisions.
