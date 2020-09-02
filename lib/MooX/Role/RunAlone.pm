@@ -256,7 +256,7 @@ Examples:
  );
   
  # make a single (silent) attempt, but return to the caller instead of
- # exiting if the attempt fails. also suppresses any failure message.
+ # exiting if the attempt fails. Also suppresses any failure message.
  my $locked = __PACKAGE__->runalone_lock(
     noexit => 1,
  );
