@@ -7,7 +7,7 @@ use Test::More tests => 4;
 
 use FindBin;
 use IPC::Run;
-use File::Temp qw(tempfile);
+use File::Temp ();
 use Time::HiRes qw( sleep );
 
 my $script_txt = <<'_EOS_';
@@ -35,14 +35,14 @@ subtest DATA_tag_with_main_namespace => sub {
 
     my $txt = $script_txt . '__DATA__';
 
-    my ( $script_fh, $script_name ) = tempfile();
-    print $script_fh $txt;
-    close $script_fh;
+    my $fh = File::Temp->new;
+    print $fh $txt;
+    close $fh;
 
     my $p1_stdout = '';
     my $p1_stderr = '';
     my $p1        = IPC::Run::start(
-        [ $^X, $script_name ],
+        [ $^X, $fh->filename ],
         '>', sub  { $p1_stdout .= $_[0] },
         '2>', sub { $p1_stderr .= $_[0] }
     );
@@ -51,7 +51,7 @@ subtest DATA_tag_with_main_namespace => sub {
     my $p2_stdout = '';
     my $p2_stderr = '';
     my $p2        = IPC::Run::start(
-        [ $^X, $script_name ],
+        [ $^X, $fh->filename ],
         '>', sub  { $p2_stdout .= $_[0] },
         '2>', sub { $p2_stderr .= $_[0] }
     );
@@ -76,14 +76,14 @@ subtest END_tag_with_main_namespace => sub {
 
     my $txt = $script_txt . '__END__';
 
-    my ( $script_fh, $script_name ) = tempfile();
-    print $script_fh $txt;
-    close $script_fh;
+    my $fh = File::Temp->new;
+    print $fh $txt;
+    close $fh;
 
     my $p1_stdout = '';
     my $p1_stderr = '';
     my $p1        = IPC::Run::start(
-        [ $^X, $script_name ],
+        [ $^X, $fh->filename ],
         '>', sub  { $p1_stdout .= $_[0] },
         '2>', sub { $p1_stderr .= $_[0] }
     );
@@ -92,7 +92,7 @@ subtest END_tag_with_main_namespace => sub {
     my $p2_stdout = '';
     my $p2_stderr = '';
     my $p2        = IPC::Run::start(
-        [ $^X, $script_name ],
+        [ $^X, $fh->filename ],
         '>', sub  { $p2_stdout .= $_[0] },
         '2>', sub { $p2_stderr .= $_[0] }
     );
@@ -118,14 +118,14 @@ subtest DATA_tag_with_script_namespace => sub {
     my $txt = "package My::TestScript;\n";
     $txt .= $script_txt . '__DATA__';
 
-    my ( $script_fh, $script_name ) = tempfile();
-    print $script_fh $txt;
-    close $script_fh;
+    my $fh = File::Temp->new;
+    print $fh $txt;
+    close $fh;
 
     my $p1_stdout = '';
     my $p1_stderr = '';
     my $p1        = IPC::Run::start(
-        [ $^X, $script_name ],
+        [ $^X, $fh->filename ],
         '>', sub  { $p1_stdout .= $_[0] },
         '2>', sub { $p1_stderr .= $_[0] }
     );
@@ -134,7 +134,7 @@ subtest DATA_tag_with_script_namespace => sub {
     my $p2_stdout = '';
     my $p2_stderr = '';
     my $p2        = IPC::Run::start(
-        [ $^X, $script_name ],
+        [ $^X, $fh->filename ],
         '>', sub  { $p2_stdout .= $_[0] },
         '2>', sub { $p2_stderr .= $_[0] }
     );
@@ -160,14 +160,14 @@ subtest END_tag_with_script_namespace => sub {
     my $txt = "package My::TestScript;\n";
     $txt .= $script_txt . '__END__';
 
-    my ( $script_fh, $script_name ) = tempfile();
-    print $script_fh $txt;
-    close $script_fh;
+    my $fh = File::Temp->new;
+    print $fh $txt;
+    close $fh;
 
     my $p1_stdout = '';
     my $p1_stderr = '';
     my $p1        = IPC::Run::start(
-        [ $^X, $script_name ],
+        [ $^X, $fh->filename ],
         '>', sub  { $p1_stdout .= $_[0] },
         '2>', sub { $p1_stderr .= $_[0] }
     );
@@ -176,7 +176,7 @@ subtest END_tag_with_script_namespace => sub {
     my $p2_stdout = '';
     my $p2_stderr = '';
     my $p2        = IPC::Run::start(
-        [ $^X, $script_name ],
+        [ $^X, $fh->filename ],
         '>', sub  { $p2_stdout .= $_[0] },
         '2>', sub { $p2_stderr .= $_[0] }
     );

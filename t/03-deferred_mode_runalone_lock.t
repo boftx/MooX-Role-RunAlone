@@ -22,10 +22,11 @@ my $pkg = 'MooX::Role::RunAlone';
 my $ral_ran = 0;
 my $_ral_val;
 my $_ral_cnt;
+my $_ral_ret = 10;
 my $mock_MRR = Test::MockModule->new($pkg);
 $mock_MRR->mock(
     runalone_lock  => sub { return $ral_ran = 1; },
-    _runalone_lock => sub { return ++$_ral_cnt > 3 ? 1 : $_ral_val; },
+    _runalone_lock => sub { return ++$_ral_cnt < $_ral_ret ? $_ral_val : 1; },
     _runalone_exit => sub { die 'exit called'; },
 );
 
@@ -110,7 +111,7 @@ subtest verbose => sub {
 };
 
 subtest attempts => sub {
-    plan tests => 9;
+    plan tests => 27;
 
     $_ral_val = 0;
     $_ral_cnt = 0;
@@ -122,12 +123,24 @@ subtest attempts => sub {
     is( slept(),   2, 'sleep was not called after final attempt' );
 
     $_ral_cnt = 0;
+    $_ral_ret = 4;
     eval {
         local $SIG{__WARN__} = sub { };
         $pkg->runalone_lock( attempts => 5 );
     };
     is( $_ral_cnt, 4, 'retry loops stops upon success' );
     is( slept(),   3, 'sleep was not called after successful attempt' );
+
+    $_ral_ret = 10;
+    for ( 1 .. 9 ) {
+        $_ral_cnt = 0;
+        eval {
+            local $SIG{__WARN__} = sub { };
+            $pkg->runalone_lock( attempts => $_, noexit => 1 );
+            ok( !$@, qq{$_ was accepted by "attempts" argument} );
+        };
+        is( $_ral_cnt, $_, "$_ attempts were made" );
+    }
 
     my @bad_cases = (
         {
@@ -164,7 +177,10 @@ subtest attempts => sub {
 };
 
 subtest interval => sub {
-    plan tests => 9;
+    plan tests => 25;
+
+    # be sure this is starting clean!
+    $Test::MockSleep::Slept = 0;
 
     $_ral_val = 0;
     $_ral_cnt = 0;
@@ -176,14 +192,18 @@ subtest interval => sub {
     is( $_ral_cnt, 2, '2 attempts were made' );
     is( slept(),   1, 'interval defaults to 1' );
 
+    $_ral_ret = 10;
     $_ral_val = 0;
-    $_ral_cnt = 0;
-    eval {
-        local $SIG{__WARN__} = sub { };
-        $pkg->runalone_lock( interval => 2, attempts => 3 );
-    };
-    is( $_ral_cnt, 3, '3 attempts were made' );
-    is( slept(),   4, 'time slept equals (attempts - 1) * interval' );
+    for ( 1 .. 9 ) {
+        $_ral_cnt = 0;
+        eval {
+            $pkg->runalone_lock( interval => $_, attempts => 2, noexit => 1 );
+        };
+
+        #local $SIG{__WARN__} = sub { };
+        ok( !$@, qq{$_ was accepted by "interval" argument} );
+        is( slept(), $_, "sleep($_) was called" );
+    }
 
     my @bad_cases = (
         {

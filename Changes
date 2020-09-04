@@ -1,6 +1,13 @@
 Revision history for MooX-Role-RunAlone
 
 Version     Timestamp
+v0.0.0_04   2020-09-03 14:10:00 PDT
+            Removed use of defined-or operator in two places.
+            Changed to OO File::Temp to auto-delete /tmp files.
+            Refactored retry loop logic.
+            Removed unused argument from _runalone_lock().
+            Expanded test coverage.
+
 v0.0.0_03   2020-09-01 17:00:00 PDT
             Spelling corrections found by Dragan and myself.
             Expanded tests for better coverage.

@@ -7,10 +7,9 @@ use warnings;
 use Fcntl qw( :flock );
 use Carp qw( croak );
 
-#use Moo::Role;
 use Role::Tiny;
 
-our $VERSION = 'v0.0.0_03';
+our $VERSION = 'v0.0.0_04';
 
 my %default_lock_args = (
     noexit   => 0,
@@ -24,7 +23,7 @@ my $data_pkg = 'main::DATA';
 my @call_info = caller(6);
 my $pkg       = $call_info[0];
 
-# use a block because the pragmas are lexical scope and we need
+# use a block because the pragmas have lexical scope and we need
 # to stop warnings/errors from the call to "tell()"
 {
     no strict 'refs';
@@ -53,7 +52,7 @@ sub runalone_lock {
 
     # set defaults as needed
     for ( keys(%default_lock_args) ) {
-        $args{$_} //= $default_lock_args{$_};
+        $args{$_} = $default_lock_args{$_} unless defined( $args{$_} );
     }
 
     croak 'ERROR: unknown argument present'
@@ -69,43 +68,41 @@ sub runalone_lock {
         $args{$_} = !!$args{$_};
     }
 
-    my $ret = 1;
+    my $ret;
     while ( $args{attempts}-- > 0 ) {
         warn "Attempting to lock $data_pkg ...\n" if $args{verbose};
-        last if $proto->_runalone_lock( $args{noexit} );
+        last if $ret = $proto->_runalone_lock;
         warn "Failed, retrying $args{attempts} more time(s)\n"
           if $args{verbose};
-        if ( $args{attempts} ) {
-            sleep $args{interval} if $args{attempts};
-        }
-        elsif ( $args{noexit} ) {
-            $ret = 0;
-        }
-        else {
-            warn "FATAL: A copy of '$0' is already running\n";
-            __PACKAGE__->_runalone_exit(1);
-        }
+
+        sleep( $args{interval} ) if $args{attempts};
     }
-    warn "SUCCESS\n" if $args{verbose} && $ret;
+
+    if ($ret) {
+        warn "SUCCESS\n" if $args{verbose};
+    }
+    elsif ( !$args{noexit} ) {
+        warn "FATAL: A copy of '$0' is already running\n";
+        __PACKAGE__->_runalone_exit(1);
+    }
 
     return $ret;
 }
 
-# no need to mock Perl internal exit for tests
-sub _runalone_exit {
-    my $proto  = shift;
-    my $status = shift // 0;
-
-    exit($status);
-}
-
 # broken out for easier retry testing
 sub _runalone_lock {
-    my $proto  = shift;
-    my $noexit = shift;
+    my $proto = shift;
 
     no strict 'refs';
     return flock( *{$data_pkg}, LOCK_EX | LOCK_NB );
+}
+
+# mock this out in tests
+sub _runalone_exit {
+    my $proto  = shift;
+    my $status = shift || 0;
+
+    exit($status);
 }
 
 # helper for test scripts
@@ -126,7 +123,7 @@ MooX::Role::RunAlone - prevent multiple instances of a script from running
 
 =head1 VERSION
 
-Version v0.0.0_03
+Version v0.0.0_04
 
 =head1 SYNOPSIS
   
@@ -207,7 +204,7 @@ C<runalone_lock()> at an appropriate time.
 
 =head2 Fatal Messages
 
-There are two messages that are sent to C<STDERR> that cannot usually be
+There are two messages that are sent to C<STDERR> that cannot be
 suppressed during normal startup:
 
 =over 4
@@ -217,8 +214,8 @@ suppressed during normal startup:
 
 =item "FATAL: A copy of '$0' is already running"
 
-Note: this can be suppressed in deferred locking mode. See the C<noexit>
-argument to C<runalone_lock>.
+Note: this message can be suppressed in deferred locking mode. See the
+C<noexit> argument to C<runalone_lock>.
 
 =back
 
@@ -389,5 +386,8 @@ This is free software, licensed under:
 
   The Artistic License 2.0 (GPL Compatible)
 
+=head1 DISCLAIMER OF WARRANTIES
+
+THIS PACKAGE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =cut

@@ -7,8 +7,9 @@ use Test::More tests => 3;
 
 use FindBin;
 use IPC::Run;
-use File::Temp qw(tempfile);
-use Time::HiRes qw( sleep );
+
+# force OO API
+use File::Temp ();
 
 my $script_txt = <<'_EOS_';
 package My::TestScript;
@@ -32,15 +33,15 @@ _EOS_
 subtest missing_DATA_or_END_tag => sub {
     plan tests => 3;
 
-    my ( $script_fh, $script_name ) = tempfile();
-    print $script_fh $script_txt;
-    close $script_fh;
+    my $fh = File::Temp->new;
+    print $fh $script_txt;
+    close $fh;
 
     my $stdout_str = qr/No __DATA__ or __END__/;
     my $p1_stdout  = '';
     my $p1_stderr  = '';
     my $p1         = IPC::Run::start(
-        [ $^X, $script_name ],
+        [ $^X, $fh->filename ],
         '>', sub  { $p1_stdout .= $_[0] },
         '2>', sub { $p1_stderr .= $_[0] }
     );
@@ -55,15 +56,15 @@ subtest DATA_tag_present => sub {
 
     my $txt = $script_txt . '__DATA__';
 
-    my ( $script_fh, $script_name ) = tempfile();
-    print $script_fh $txt;
-    close $script_fh;
+    my $fh = File::Temp->new;
+    print $fh $txt;
+    close $fh;
 
     my $stdout_str = qr/checkpoint charlie/;
     my $p1_stdout  = '';
     my $p1_stderr  = '';
     my $p1         = IPC::Run::start(
-        [ $^X, $script_name ],
+        [ $^X, $fh->filename ],
         '>', sub  { $p1_stdout .= $_[0] },
         '2>', sub { $p1_stderr .= $_[0] }
     );
@@ -78,15 +79,15 @@ subtest END_tag_present => sub {
 
     my $txt = $script_txt . '__END__';
 
-    my ( $script_fh, $script_name ) = tempfile();
-    print $script_fh $txt;
-    close $script_fh;
+    my $fh = File::Temp->new;
+    print $fh $txt;
+    close $fh;
 
     my $stdout_str = qr/checkpoint charlie/;
     my $p1_stdout  = '';
     my $p1_stderr  = '';
     my $p1         = IPC::Run::start(
-        [ $^X, $script_name ],
+        [ $^X, $fh->filename ],
         '>', sub  { $p1_stdout .= $_[0] },
         '2>', sub { $p1_stderr .= $_[0] }
     );
